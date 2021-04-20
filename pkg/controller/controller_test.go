@@ -31,17 +31,22 @@ func TestReconcileDaemonSets(t *testing.T) {
 
 	tests := []struct {
 		namespacedName types.NamespacedName
+		expectError    bool
 		expectedImages []string
 	}{
 		{
-			types.NamespacedName{Name: "kube-proxy", Namespace: "kube-system"},
-			[]string{
+			namespacedName: types.NamespacedName{Name: "kube-proxy", Namespace: "kube-system"},
+			expectedImages: []string{
 				"k8s.gcr.io/kube-proxy:v1.20.2",
 			},
 		},
 		{
-			types.NamespacedName{Name: "ingress-nginx-controller", Namespace: "ingress-nginx"},
-			[]string{
+			namespacedName: types.NamespacedName{Name: "nginx", Namespace: "default"},
+			expectError:    true,
+		},
+		{
+			namespacedName: types.NamespacedName{Name: "ingress-nginx-controller", Namespace: "ingress-nginx"},
+			expectedImages: []string{
 				targetRepositoryPrefix + "/k8s.gcr.io_ingress-nginx_controller@sha256:c4390c53f348c3bd4e60a5dd6a11c35799ae78c49388090140b9d72ccede1755",
 			},
 		},
@@ -51,6 +56,10 @@ func TestReconcileDaemonSets(t *testing.T) {
 		_, err = r.Reconcile(context.Background(), reconcile.Request{
 			NamespacedName: test.namespacedName,
 		})
+		if test.expectError {
+			assert.Error(t, err, "reconcile should error")
+			continue
+		}
 		assert.NoError(t, err, "reconcile should not error")
 
 		o := &appsv1.DaemonSet{}
@@ -77,30 +86,35 @@ func TestReconcileDeployments(t *testing.T) {
 
 	tests := []struct {
 		namespacedName types.NamespacedName
+		expectError    bool
 		expectedImages []string
 	}{
 		{
-			types.NamespacedName{Name: "coredns", Namespace: "kube-system"},
-			[]string{
+			namespacedName: types.NamespacedName{Name: "coredns", Namespace: "kube-system"},
+			expectedImages: []string{
 				"k8s.gcr.io/coredns:1.7.0",
 			},
 		},
 		{
-			types.NamespacedName{Name: "nginx", Namespace: "default"},
-			[]string{
+			namespacedName: types.NamespacedName{Name: "typo", Namespace: "default"},
+			expectError:    true,
+		},
+		{
+			namespacedName: types.NamespacedName{Name: "nginx", Namespace: "default"},
+			expectedImages: []string{
 				targetRepositoryPrefix + "/index.docker.io_library_nginx:latest",
 			},
 		},
 		{
-			types.NamespacedName{Name: "multi", Namespace: "test"},
-			[]string{
+			namespacedName: types.NamespacedName{Name: "multi", Namespace: "test"},
+			expectedImages: []string{
 				targetRepositoryPrefix + "/index.docker.io_library_alpine:3.13",
 				targetRepositoryPrefix + "/quay.io_prometheus_node-exporter:v1.1.2",
 			},
 		},
 		{
-			types.NamespacedName{Name: "nginx", Namespace: "default"},
-			[]string{
+			namespacedName: types.NamespacedName{Name: "nginx", Namespace: "default"},
+			expectedImages: []string{
 				targetRepositoryPrefix + "/index.docker.io_library_nginx:latest",
 			},
 		},
@@ -110,6 +124,10 @@ func TestReconcileDeployments(t *testing.T) {
 		_, err = r.Reconcile(context.Background(), reconcile.Request{
 			NamespacedName: test.namespacedName,
 		})
+		if test.expectError {
+			assert.Error(t, err, "reconcile should error")
+			continue
+		}
 		assert.NoError(t, err, "reconcile should not error")
 
 		o := &appsv1.Deployment{}
@@ -154,6 +172,18 @@ func newTestClient() client.Client {
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{
 							{Name: "coredns", Image: "k8s.gcr.io/coredns:1.7.0"},
+						},
+					},
+				},
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "typo", Namespace: "default"},
+			Spec: appsv1.DeploymentSpec{
+				Template: corev1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
+							{Name: "nginx", Image: "nnnnginx"},
 						},
 					},
 				},
