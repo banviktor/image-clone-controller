@@ -17,12 +17,12 @@ import (
 type Reconciler struct {
 	client client.Client
 	om     ObjectManager
-	cloner *imagecloner.Cloner
+	cloner imagecloner.Cloner
 }
 
 // AttachController creates a controller and attaches it to the provided manager.Manager.
 func AttachController(name string, mgr manager.Manager, om ObjectManager, targetPrefix string) error {
-	cloner, err := imagecloner.NewCloner(targetPrefix)
+	cloner, err := imagecloner.NewFlatCloner(targetPrefix)
 	if err != nil {
 		return err
 	}
@@ -60,14 +60,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	err := r.client.Get(ctx, req.NamespacedName, object)
 	if err != nil {
 		log.Error(err, "failed to get resource")
-		return reconcile.Result{}, nil
+		return reconcile.Result{}, err
 	}
 
 	// Clone images.
 	imageOverrides, err := r.cloner.CloneMulti(ctx, r.om.GetContainerImages(object))
 	if err != nil {
 		log.Error(err, "failed to clone images")
-		return reconcile.Result{}, nil
+		return reconcile.Result{}, err
 	}
 	if len(imageOverrides) == 0 {
 		return reconcile.Result{}, nil
@@ -80,7 +80,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	err = r.client.Patch(ctx, newObject, patch)
 	if err != nil {
 		log.Error(err, "patch failed")
-		return reconcile.Result{}, nil
+		return reconcile.Result{}, err
 	}
 
 	// Wrap up.
