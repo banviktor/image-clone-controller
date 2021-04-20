@@ -25,6 +25,14 @@ Deploy the application:
 
     kubectl -n image-clone-controller apply -k ./deployment/overlays/development
 
+## Run tests
+
+There's room for improvement when it comes to testing, however I've included a 
+fairly simple integration test. It's better than nothing.
+
+    docker run --rm -d --name registry -p 5000:5000 registry:2
+    go test ./...
+
 ## Design considerations
 
 ### Separate controllers for the Deployments and DaemonSets
