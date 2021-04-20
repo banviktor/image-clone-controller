@@ -1,0 +1,4 @@
+namespace: image-clone-controller
+resources:
+  - rbac.yaml
+  - deployment.yaml

@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: controller
+  name: controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: controller
+  template:
+    metadata:
+      labels:
+        app: controller
+    spec:
+      containers:
+      - image: banviktor/image-clone-controller
+        name: controller
+        env:
+          - name: DOCKER_CONFIG
+            value: /etc/docker
+        volumeMounts:
+          - name: docker-config
+            mountPath: /etc/docker
+      serviceAccountName: controller
+      volumes:
+        - name: docker-config
+          secret:
+            secretName: target-registry
+            defaultMode: 0444
+            items:
+              - key: .dockerconfigjson
+                path: config.json
