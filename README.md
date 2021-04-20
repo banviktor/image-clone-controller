@@ -1,5 +1,7 @@
 # image-clone-controller
 
+**Not ready for production!**
+
 A Kubernetes controller for automatically backing up public images used by
 Deployments and DaemonSets to a dedicated backup registry repository.
 
