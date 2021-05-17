@@ -35,12 +35,6 @@ func TestReconcileDaemonSets(t *testing.T) {
 		expectedImages []string
 	}{
 		{
-			namespacedName: types.NamespacedName{Name: "kube-proxy", Namespace: "kube-system"},
-			expectedImages: []string{
-				"k8s.gcr.io/kube-proxy:v1.20.2",
-			},
-		},
-		{
 			namespacedName: types.NamespacedName{Name: "nginx", Namespace: "default"},
 			expectError:    true,
 		},
@@ -90,12 +84,6 @@ func TestReconcileDeployments(t *testing.T) {
 		expectedImages []string
 	}{
 		{
-			namespacedName: types.NamespacedName{Name: "coredns", Namespace: "kube-system"},
-			expectedImages: []string{
-				"k8s.gcr.io/coredns:1.7.0",
-			},
-		},
-		{
 			namespacedName: types.NamespacedName{Name: "typo", Namespace: "default"},
 			expectError:    true,
 		},
@@ -142,36 +130,12 @@ func TestReconcileDeployments(t *testing.T) {
 func newTestClient() client.Client {
 	return fakeclient.NewClientBuilder().WithObjects(
 		&appsv1.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{Name: "kube-proxy", Namespace: "kube-system"},
-			Spec: appsv1.DaemonSetSpec{
-				Template: corev1.PodTemplateSpec{
-					Spec: corev1.PodSpec{
-						Containers: []corev1.Container{
-							{Name: "kube-proxy", Image: "k8s.gcr.io/kube-proxy:v1.20.2"},
-						},
-					},
-				},
-			},
-		},
-		&appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{Name: "ingress-nginx-controller", Namespace: "ingress-nginx"},
 			Spec: appsv1.DaemonSetSpec{
 				Template: corev1.PodTemplateSpec{
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{
 							{Name: "controller", Image: "k8s.gcr.io/ingress-nginx/controller:v0.45.0@sha256:c4390c53f348c3bd4e60a5dd6a11c35799ae78c49388090140b9d72ccede1755"},
-						},
-					},
-				},
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "coredns", Namespace: "kube-system"},
-			Spec: appsv1.DeploymentSpec{
-				Template: corev1.PodTemplateSpec{
-					Spec: corev1.PodSpec{
-						Containers: []corev1.Container{
-							{Name: "coredns", Image: "k8s.gcr.io/coredns:1.7.0"},
 						},
 					},
 				},

@@ -6,9 +6,11 @@ import (
 	"github.com/banviktor/image-clone-controller/pkg/imagecloner"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -21,12 +23,7 @@ type Reconciler struct {
 }
 
 // AttachController creates a controller and attaches it to the provided manager.Manager.
-func AttachController(name string, mgr manager.Manager, om ObjectManager, targetPrefix string) error {
-	cloner, err := imagecloner.NewFlatCloner(targetPrefix)
-	if err != nil {
-		return err
-	}
-
+func AttachController(name string, mgr manager.Manager, om ObjectManager, cloner imagecloner.Cloner) error {
 	c, err := controller.New(name, mgr, controller.Options{
 		Reconciler: &Reconciler{
 			client: mgr.GetClient(),
@@ -38,7 +35,20 @@ func AttachController(name string, mgr manager.Manager, om ObjectManager, target
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: om.Create()}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: om.Create()}, &handler.EnqueueRequestForObject{}, &predicate.Funcs{
+		CreateFunc: func(event event.CreateEvent) bool {
+			return shouldQueueObject(event.Object)
+		},
+		DeleteFunc: func(event event.DeleteEvent) bool {
+			return false
+		},
+		UpdateFunc: func(event event.UpdateEvent) bool {
+			return shouldQueueObject(event.ObjectNew)
+		},
+		GenericFunc: func(event event.GenericEvent) bool {
+			return shouldQueueObject(event.Object)
+		},
+	})
 	if err != nil {
 		return err
 	}
@@ -46,14 +56,18 @@ func AttachController(name string, mgr manager.Manager, om ObjectManager, target
 	return nil
 }
 
+// shouldQueueObject returns whether the client.Object should be processed.
+func shouldQueueObject(o client.Object) bool {
+	switch o.GetNamespace() {
+	case "kube-system", "image-clone-controller":
+		return false
+	}
+	return true
+}
+
 // Reconcile implements reconcile.Reconciler.
 func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	log := log.FromContext(ctx)
-
-	// Ignore system and own resources.
-	if req.Namespace == "kube-system" || req.Namespace == "image-clone-controller" {
-		return reconcile.Result{}, nil
-	}
 
 	// Fetch resource.
 	object := r.om.Create()

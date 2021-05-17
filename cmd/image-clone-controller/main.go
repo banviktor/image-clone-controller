@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/banviktor/image-clone-controller/pkg/controller"
+	"github.com/banviktor/image-clone-controller/pkg/imagecloner"
 	dockerconfig "github.com/docker/cli/cli/config"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -33,12 +34,18 @@ func main() {
 	}
 	log.Log.Info(fmt.Sprintf("using target repository: %s", targetRepository))
 
-	if err := controller.AttachController("deployment", mgr, &controller.DeploymentManager{}, targetRepository); err != nil {
+	cloner, err := imagecloner.NewFlatCloner(targetRepository)
+	if err != nil {
+		log.Log.Error(err, "unable to initialize image cloner")
+		os.Exit(1)
+	}
+
+	if err := controller.AttachController("deployment", mgr, &controller.DeploymentManager{}, cloner); err != nil {
 		log.Log.Error(err, "unable to set up Deployment controller")
 		os.Exit(1)
 	}
 
-	if err := controller.AttachController("daemonset", mgr, &controller.DaemonSetManager{}, targetRepository); err != nil {
+	if err := controller.AttachController("daemonset", mgr, &controller.DaemonSetManager{}, cloner); err != nil {
 		log.Log.Error(err, "unable to set up DaemonSet controller")
 		os.Exit(1)
 	}
