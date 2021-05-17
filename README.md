@@ -1,6 +1,6 @@
 # image-clone-controller
 
-**Not ready for production!**
+**Not intended for actual use! This was an interview task.**
 
 A Kubernetes controller for automatically backing up public images used by
 Deployments and DaemonSets to a dedicated backup registry repository.
@@ -29,8 +29,8 @@ Deploy the application:
 
 ## Run tests
 
-There's room for improvement when it comes to testing, however I've included a 
-fairly simple integration test. It's better than nothing.
+The test suite leaves a lot to be desired, however a simple integration test
+makes sure the core functionality works as expected.
 
     docker run --rm -d --name registry -p 5000:5000 registry:2
     go test ./...
